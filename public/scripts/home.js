@@ -1,36 +1,58 @@
 const main = document.querySelector(".main")
 
+const errorBox = document.createElement("div")
+errorBox.className = "error"
+errorBox.style.display = "none"
+main.parentNode.insertBefore(errorBox, main)
+
+const showError = message => {
+  errorBox.textContent = message
+  errorBox.style.display = "block"
+}
+
 fetchGenresList()
 
-function fetchGenresList() {
+async function fetchGenresList() {
   const url = genres_list_http + new URLSearchParams({
     api_key: api_key
   })
 
-  fetch(url)
-    .then(res => res.json())
-    .then(data => {
-      data.genres.forEach(item => {
-        fetchMoviesListByGenres(item.id, item.name)
-      });
+  try {
+    const res = await fetch(url)
+    if (!res.ok) {
+      throw new Error(`Failed to fetch genres: ${res.status}`)
+    }
+
+    const data = await res.json()
+    data.genres.forEach(item => {
+      fetchMoviesListByGenres(item.id, item.name)
     })
-    .catch(err => console.log(err))
+  } catch (err) {
+    console.error("Error fetching genres list:", err)
+    showError("Erro ao carregar lista de gêneros.")
+  }
 }
 
-const fetchMoviesListByGenres = (id, genres) => {
+const fetchMoviesListByGenres = async (id, genres) => {
   const url = movie_genres_http + new URLSearchParams({
     api_key: api_key,
     with_genres: id,
     page: Math.floor(Math.random() * 3) + 1
   })
 
-  fetch(url)
-    .then(res => res.json())
-    .then(data => {
-      const category = genres.replace("_", " ")
-      makeCategoryElement(category, data.results)
-    })
-    .catch(err => console.log(err))
+  try {
+    const res = await fetch(url)
+    if (!res.ok) {
+      throw new Error(`Failed to fetch movies for ${genres}: ${res.status}`)
+    }
+
+    const data = await res.json()
+    const category = genres.replace("_", " ")
+    makeCategoryElement(category, data.results)
+  } catch (err) {
+    console.error(`Error fetching movies for ${genres}:`, err)
+    showError(`Erro ao carregar filmes para ${genres.replace("_", " ")}`)
+  }
 }
 
 const makeCategoryElement = (category, data) => {
